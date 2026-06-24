@@ -1,0 +1,454 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <world name="robot_lab_minimal">
+    <physics name="default_physics" type="ode">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <scene>
+      <ambient>0.6 0.6 0.6 1</ambient>
+      <background>0.92 0.94 0.96 1</background>
+    </scene>
+
+    <light name="lab_key_light" type="directional">
+      <pose>0 0 4 0.5 0.2 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <direction>-0.5 0.2 -1</direction>
+    </light>
+
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>5 5</size>
+            </plane>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>5 5</size>
+            </plane>
+          </geometry>
+          <material>
+            <ambient>0.55 0.58 0.60 1</ambient>
+            <diffuse>0.55 0.58 0.60 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="lab_workbench">
+      <static>true</static>
+      <pose>0.75 0 0.78 0 0 0</pose>
+      <link name="top">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>1.0 0.7 0.06</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>1.0 0.7 0.06</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.42 0.46 0.48 1</ambient>
+            <diffuse>0.42 0.46 0.48 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      <link name="left_front_leg">
+        <pose>0.43 0.28 -0.39 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.05 0.05 0.78</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.05 0.05 0.78</size>
+            </box>
+          </geometry>
+        </visual>
+      </link>
+      <link name="right_front_leg">
+        <pose>0.43 -0.28 -0.39 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.05 0.05 0.78</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.05 0.05 0.78</size>
+            </box>
+          </geometry>
+        </visual>
+      </link>
+      <link name="left_rear_leg">
+        <pose>-0.43 0.28 -0.39 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.05 0.05 0.78</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.05 0.05 0.78</size>
+            </box>
+          </geometry>
+        </visual>
+      </link>
+      <link name="right_rear_leg">
+        <pose>-0.43 -0.28 -0.39 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.05 0.05 0.78</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.05 0.05 0.78</size>
+            </box>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+
+    <model name="sample_block">
+      <static>false</static>
+      <pose>0.58 0.18 0.84 0 0 0</pose>
+      <link name="link">
+        <inertial>
+          <mass>0.1</mass>
+          <inertia>
+            <ixx>0.00005</ixx>
+            <iyy>0.00005</iyy>
+            <izz>0.00005</izz>
+          </inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.07 0.07 0.07</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.07 0.07 0.07</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.0 0.45 0.85 1</ambient>
+            <diffuse>0.0 0.45 0.85 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="target_pad">
+      <static>true</static>
+      <pose>0.58 -0.18 0.815 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.08</radius>
+              <length>0.01</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.05 0.7 0.25 1</ambient>
+            <diffuse>0.05 0.7 0.25 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Manipulable red vial: second grasp target for multi-task runs. -->
+    <model name="sample_vial_red">
+      <static>false</static>
+      <pose>0.62 0.30 0.865 0 0 0</pose>
+      <link name="link">
+        <inertial>
+          <mass>0.05</mass>
+          <inertia>
+            <ixx>0.00005</ixx>
+            <iyy>0.00005</iyy>
+            <izz>0.00001</izz>
+          </inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.018</radius>
+              <length>0.10</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.018</radius>
+              <length>0.10</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.85 0.12 0.12 1</ambient>
+            <diffuse>0.85 0.12 0.12 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Sample tray: secondary place target on the bench. -->
+    <model name="sample_tray">
+      <static>true</static>
+      <pose>0.45 -0.30 0.8225 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.22 0.16 0.025</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.22 0.16 0.025</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.88 0.88 0.90 1</ambient>
+            <diffuse>0.88 0.88 0.90 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Decorative tool caddy: enriches the lab scene at the bench corner. -->
+    <model name="tool_caddy">
+      <static>true</static>
+      <pose>1.05 0.25 0.85 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.18 0.12 0.08</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.18 0.12 0.08</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.80 0.55 0.10 1</ambient>
+            <diffuse>0.80 0.55 0.10 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!--
+      Station B: a second workstation beyond the fixed arm's 0.85 m reach.
+      Reaching it requires the mecanum mobile base (lab_ur_mecanum variant),
+      demonstrating the cross-station workflow from the competition brief.
+    -->
+    <model name="station_b">
+      <static>true</static>
+      <pose>2.2 0 0.78 0 0 0</pose>
+      <link name="top">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.8 0.6 0.06</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.8 0.6 0.06</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.46 0.42 0.36 1</ambient>
+            <diffuse>0.46 0.42 0.36 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      <link name="left_leg">
+        <pose>0.33 0.23 -0.39 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.05 0.05 0.78</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.05 0.05 0.78</size>
+            </box>
+          </geometry>
+        </visual>
+      </link>
+      <link name="right_leg">
+        <pose>0.33 -0.23 -0.39 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.05 0.05 0.78</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.05 0.05 0.78</size>
+            </box>
+          </geometry>
+        </visual>
+      </link>
+      <link name="left_rear_leg">
+        <pose>-0.33 0.23 -0.39 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.05 0.05 0.78</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.05 0.05 0.78</size>
+            </box>
+          </geometry>
+        </visual>
+      </link>
+      <link name="right_rear_leg">
+        <pose>-0.33 -0.23 -0.39 0 0 0</pose>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.05 0.05 0.78</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.05 0.05 0.78</size>
+            </box>
+          </geometry>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Dynamic obstacle proxy parked outside the bench area by default. -->
+    <model name="moving_obstacle">
+      <static>true</static>
+      <pose>0.58 0.7 1.05 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>0.06</radius>
+              <length>0.5</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.06</radius>
+              <length>0.5</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0.95 0.75 0.20 1</ambient>
+            <diffuse>0.95 0.75 0.20 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!--
+      Overhead RGB-D camera on a fixed stand, looking straight down at the
+      workbench (pitch +90 deg rotates the camera +X axis downward).
+      At z=2.0 with 1.05 rad HFOV it covers the full bench top.
+    -->
+    <model name="bench_camera">
+      <static>true</static>
+      <pose>0.62 0 2.0 0 1.5708 0</pose>
+      <link name="bench_camera_link">
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.06 0.06 0.04</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.1 0.1 0.1 1</ambient>
+            <diffuse>0.1 0.1 0.1 1</diffuse>
+          </material>
+        </visual>
+        <sensor name="bench_rgbd" type="depth">
+          <always_on>true</always_on>
+          <visualize>false</visualize>
+          <update_rate>5</update_rate>
+          <camera>
+            <horizontal_fov>1.05</horizontal_fov>
+            <image>
+              <width>640</width>
+              <height>480</height>
+            </image>
+            <clip>
+              <near>0.1</near>
+              <far>5.0</far>
+            </clip>
+          </camera>
+          <plugin name="bench_camera_ros" filename="libgazebo_ros_camera.so">
+            <ros>
+              <remapping>image_raw:=image</remapping>
+            </ros>
+            <camera_name>bench_camera</camera_name>
+            <frame_name>bench_camera_optical_frame</frame_name>
+            <min_depth>0.1</min_depth>
+            <max_depth>5.0</max_depth>
+          </plugin>
+        </sensor>
+      </link>
+    </model>
+  </world>
+</sdf>

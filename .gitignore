@@ -1,0 +1,26 @@
+# ROS/colcon generated artifacts
+build/
+install/
+log/
+
+# Python caches and test artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local editor and agent state
+.vscode/
+.claude/
+
+# Local planning/context artifacts
+docs/
+PROJECT_CONTEXT.md
+*.png
+
+# Windows alternate data stream remnants copied into WSL
+*:Zone.Identifier
+
+# Common local runtime files
+*.log
+.env
+.env.*

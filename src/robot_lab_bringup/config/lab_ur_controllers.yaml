@@ -1,0 +1,87 @@
+# Controllers for the lab cobot simulation (UR arm + parallel gripper).
+# Loaded by the gz_ros2_control plugin via the simulation_controllers xacro arg.
+controller_manager:
+  ros__parameters:
+    update_rate: 500  # Hz
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    scaled_joint_trajectory_controller:
+      type: ur_controllers/ScaledJointTrajectoryController
+
+    joint_trajectory_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+    forward_position_controller:
+      type: position_controllers/JointGroupPositionController
+
+    gripper_position_controller:
+      type: position_controllers/JointGroupPositionController
+
+scaled_joint_trajectory_controller:
+  ros__parameters:
+    joints:
+      - shoulder_pan_joint
+      - shoulder_lift_joint
+      - elbow_joint
+      - wrist_1_joint
+      - wrist_2_joint
+      - wrist_3_joint
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    constraints:
+      stopped_velocity_tolerance: 0.2
+      goal_time: 0.0
+      shoulder_pan_joint: { trajectory: 0.4, goal: 0.15 }
+      shoulder_lift_joint: { trajectory: 0.4, goal: 0.15 }
+      elbow_joint: { trajectory: 0.4, goal: 0.15 }
+      wrist_1_joint: { trajectory: 0.4, goal: 0.15 }
+      wrist_2_joint: { trajectory: 0.4, goal: 0.15 }
+      wrist_3_joint: { trajectory: 0.4, goal: 0.15 }
+    # Empty interface name lets the scaled controller run without the UR
+    # driver's speed-scaling hardware interface (simulation setup).
+    speed_scaling_interface_name: ""
+
+joint_trajectory_controller:
+  ros__parameters:
+    joints:
+      - shoulder_pan_joint
+      - shoulder_lift_joint
+      - elbow_joint
+      - wrist_1_joint
+      - wrist_2_joint
+      - wrist_3_joint
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    constraints:
+      stopped_velocity_tolerance: 0.2
+      goal_time: 0.0
+      shoulder_pan_joint: { trajectory: 0.4, goal: 0.15 }
+      shoulder_lift_joint: { trajectory: 0.4, goal: 0.15 }
+      elbow_joint: { trajectory: 0.4, goal: 0.15 }
+      wrist_1_joint: { trajectory: 0.4, goal: 0.15 }
+      wrist_2_joint: { trajectory: 0.4, goal: 0.15 }
+      wrist_3_joint: { trajectory: 0.4, goal: 0.15 }
+
+forward_position_controller:
+  ros__parameters:
+    joints:
+      - shoulder_pan_joint
+      - shoulder_lift_joint
+      - elbow_joint
+      - wrist_1_joint
+      - wrist_2_joint
+      - wrist_3_joint
+
+gripper_position_controller:
+  ros__parameters:
+    joints:
+      - gripper_left_finger_joint
+      - gripper_right_finger_joint

@@ -1,0 +1,119 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="$(arg name)">
+  <!--
+    Mobile lab cobot: UR arm + parallel gripper on a four-wheel mecanum
+    base. Mobile variant of lab_ur_gripper.urdf.xacro — the arm mounting
+    height (0.76 m) and gripper are identical, so the grasp geometry of
+    the fixed demo is reproduced whenever the base is parked at the world
+    origin. Driving is handled by the gz-sim MecanumDrive system
+    (cmd_vel/odom); the arm and gripper stay on gz_ros2_control.
+  -->
+  <xacro:arg name="name" default="ur"/>
+  <xacro:arg name="ur_type" default="ur5e"/>
+  <xacro:arg name="tf_prefix" default=""/>
+  <xacro:arg name="joint_limit_params" default="$(find ur_description)/config/$(arg ur_type)/joint_limits.yaml"/>
+  <xacro:arg name="kinematics_params" default="$(find ur_description)/config/$(arg ur_type)/default_kinematics.yaml"/>
+  <xacro:arg name="physical_params" default="$(find ur_description)/config/$(arg ur_type)/physical_parameters.yaml"/>
+  <xacro:arg name="visual_params" default="$(find ur_description)/config/$(arg ur_type)/visual_parameters.yaml"/>
+  <xacro:arg name="safety_limits" default="false"/>
+  <xacro:arg name="safety_pos_margin" default="0.15"/>
+  <xacro:arg name="safety_k_position" default="20"/>
+  <xacro:arg name="simulation_controllers" default=""/>
+  <xacro:arg name="ros_namespace" default=""/>
+
+  <xacro:include filename="$(find ur_description)/urdf/ur_macro.xacro"/>
+  <xacro:include filename="$(find ur_description)/urdf/inc/ur_joint_control.xacro"/>
+  <xacro:include filename="$(find robot_lab_description)/urdf/inc/parallel_gripper_macro.xacro"/>
+  <xacro:include filename="$(find robot_lab_description)/urdf/inc/mecanum_base_macro.xacro"/>
+
+  <xacro:mecanum_base tf_prefix="$(arg tf_prefix)"/>
+
+  <xacro:ur_robot
+    name="$(arg name)"
+    tf_prefix="$(arg tf_prefix)"
+    parent="$(arg tf_prefix)arm_mount"
+    joint_limits_parameters_file="$(arg joint_limit_params)"
+    kinematics_parameters_file="$(arg kinematics_params)"
+    physical_parameters_file="$(arg physical_params)"
+    visual_parameters_file="$(arg visual_params)"
+    safety_limits="$(arg safety_limits)"
+    safety_pos_margin="$(arg safety_pos_margin)"
+    safety_k_position="$(arg safety_k_position)"
+    force_abs_paths="true">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </xacro:ur_robot>
+
+  <xacro:parallel_gripper parent="$(arg tf_prefix)tool0" tf_prefix="$(arg tf_prefix)"/>
+
+  <ros2_control name="$(arg name)" type="system">
+    <hardware>
+      <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+    </hardware>
+    <xacro:ur_joint_control_description tf_prefix="$(arg tf_prefix)"/>
+    <joint name="$(arg tf_prefix)gripper_left_finger_joint">
+      <command_interface name="position"/>
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+    <joint name="$(arg tf_prefix)gripper_right_finger_joint">
+      <command_interface name="position"/>
+      <state_interface name="position">
+        <param name="initial_value">0.0</param>
+      </state_interface>
+      <state_interface name="velocity"/>
+      <state_interface name="effort"/>
+    </joint>
+  </ros2_control>
+
+  <gazebo>
+    <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+      <parameters>$(arg simulation_controllers)</parameters>
+      <ros>
+        <namespace>$(arg ros_namespace)</namespace>
+      </ros>
+    </plugin>
+  </gazebo>
+
+  <gazebo>
+    <plugin filename="gz-sim-mecanum-drive-system" name="gz::sim::systems::MecanumDrive">
+      <front_left_joint>$(arg tf_prefix)front_left_wheel_joint</front_left_joint>
+      <front_right_joint>$(arg tf_prefix)front_right_wheel_joint</front_right_joint>
+      <back_left_joint>$(arg tf_prefix)rear_left_wheel_joint</back_left_joint>
+      <back_right_joint>$(arg tf_prefix)rear_right_wheel_joint</back_right_joint>
+      <wheel_separation>0.61</wheel_separation>
+      <wheelbase>0.50</wheelbase>
+      <wheel_radius>0.10</wheel_radius>
+      <min_acceleration>-3</min_acceleration>
+      <max_acceleration>3</max_acceleration>
+      <topic>/cmd_vel</topic>
+      <odom_topic>/odom</odom_topic>
+      <frame_id>odom</frame_id>
+      <child_frame_id>base_footprint</child_frame_id>
+    </plugin>
+  </gazebo>
+
+  <!-- Grasp attachment plugins (parent must survive URDF link lumping). -->
+  <gazebo>
+    <plugin filename="gz-sim-detachable-joint-system" name="gz::sim::systems::DetachableJoint">
+      <parent_link>$(arg tf_prefix)wrist_3_link</parent_link>
+      <child_model>sample_block</child_model>
+      <child_link>link</child_link>
+      <attach_topic>/gripper/attach/sample_block</attach_topic>
+      <detach_topic>/gripper/detach/sample_block</detach_topic>
+      <output_topic>/gripper/state/sample_block</output_topic>
+    </plugin>
+  </gazebo>
+  <gazebo>
+    <plugin filename="gz-sim-detachable-joint-system" name="gz::sim::systems::DetachableJoint">
+      <parent_link>$(arg tf_prefix)wrist_3_link</parent_link>
+      <child_model>sample_vial_red</child_model>
+      <child_link>link</child_link>
+      <attach_topic>/gripper/attach/sample_vial_red</attach_topic>
+      <detach_topic>/gripper/detach/sample_vial_red</detach_topic>
+      <output_topic>/gripper/state/sample_vial_red</output_topic>
+    </plugin>
+  </gazebo>
+</robot>

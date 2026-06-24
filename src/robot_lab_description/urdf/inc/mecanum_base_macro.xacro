@@ -1,0 +1,174 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro" xmlns:gz="http://gazebosim.org/schema">
+  <!--
+    Four-wheel mecanum mobile base for the lab cobot.
+
+    Geometry: chassis 0.70 x 0.55 x 0.25 with its top at z=0.45; an arm
+    column raises the UR mounting surface to z=0.76 so the parked base
+    reproduces the pedestal version's grasp geometry exactly.
+
+    Drive: the gz-sim MecanumDrive system (configured by the top-level
+    xacro) velocity-drives the four wheel joints; mecanum roller behavior
+    is emulated with the X-pattern anisotropic friction directions
+    (fdir1 expressed in the chassis frame) used by the upstream
+    gz-sim mecanum_drive.sdf example: mu=1 along the roller axis, mu2=0
+    across it.
+  -->
+  <xacro:macro name="mecanum_base" params="tf_prefix:=''">
+    <link name="${tf_prefix}base_footprint"/>
+
+    <link name="${tf_prefix}chassis">
+      <inertial>
+        <mass value="60.0"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <inertia ixx="2.2" ixy="0" ixz="0" iyy="3.0" iyz="0" izz="4.0"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <box size="0.70 0.55 0.25"/>
+        </geometry>
+        <material name="chassis_blue_grey">
+          <color rgba="0.25 0.30 0.38 1.0"/>
+        </material>
+      </visual>
+      <collision>
+        <geometry>
+          <box size="0.70 0.55 0.25"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="${tf_prefix}base_footprint_to_chassis" type="fixed">
+      <parent link="${tf_prefix}base_footprint"/>
+      <child link="${tf_prefix}chassis"/>
+      <origin xyz="0 0 0.325" rpy="0 0 0"/>
+    </joint>
+
+    <!-- Arm column: raises the UR base to z=0.76 above the floor. -->
+    <link name="${tf_prefix}arm_column">
+      <inertial>
+        <mass value="8.0"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <inertia ixx="0.08" ixy="0" ixz="0" iyy="0.08" iyz="0" izz="0.06"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <box size="0.24 0.24 0.31"/>
+        </geometry>
+        <material name="column_grey">
+          <color rgba="0.35 0.37 0.40 1.0"/>
+        </material>
+      </visual>
+      <collision>
+        <geometry>
+          <box size="0.24 0.24 0.31"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="${tf_prefix}chassis_to_arm_column" type="fixed">
+      <parent link="${tf_prefix}chassis"/>
+      <child link="${tf_prefix}arm_column"/>
+      <origin xyz="0 0 0.28" rpy="0 0 0"/>
+    </joint>
+
+    <!-- Mounting frame for the arm at z=0.76 above the floor. -->
+    <link name="${tf_prefix}arm_mount"/>
+
+    <joint name="${tf_prefix}arm_column_to_mount" type="fixed">
+      <parent link="${tf_prefix}arm_column"/>
+      <child link="${tf_prefix}arm_mount"/>
+      <origin xyz="0 0 0.155" rpy="0 0 0"/>
+    </joint>
+
+    <xacro:macro name="mecanum_wheel" params="name x y">
+      <link name="${tf_prefix}${name}_wheel">
+        <inertial>
+          <mass value="2.0"/>
+          <origin xyz="0 0 0" rpy="0 0 0"/>
+          <inertia ixx="0.006" ixy="0" ixz="0" iyy="0.006" iyz="0" izz="0.01"/>
+        </inertial>
+        <visual>
+          <origin xyz="0 0 0" rpy="-1.5707963 0 0"/>
+          <geometry>
+            <cylinder radius="0.10" length="0.08"/>
+          </geometry>
+          <material name="wheel_black">
+            <color rgba="0.08 0.08 0.08 1.0"/>
+          </material>
+        </visual>
+        <collision>
+          <origin xyz="0 0 0" rpy="-1.5707963 0 0"/>
+          <geometry>
+            <cylinder radius="0.10" length="0.08"/>
+          </geometry>
+        </collision>
+      </link>
+      <joint name="${tf_prefix}${name}_wheel_joint" type="continuous">
+        <parent link="${tf_prefix}chassis"/>
+        <child link="${tf_prefix}${name}_wheel"/>
+        <origin xyz="${x} ${y} -0.225" rpy="0 0 0"/>
+        <axis xyz="0 1 0"/>
+      </joint>
+    </xacro:macro>
+
+    <xacro:mecanum_wheel name="front_left" x="0.25" y="0.305"/>
+    <xacro:mecanum_wheel name="front_right" x="0.25" y="-0.305"/>
+    <xacro:mecanum_wheel name="rear_left" x="-0.25" y="0.305"/>
+    <xacro:mecanum_wheel name="rear_right" x="-0.25" y="-0.305"/>
+
+    <!-- X-pattern roller friction (gz-sim mecanum_drive.sdf convention). -->
+    <gazebo reference="${tf_prefix}front_left_wheel">
+      <collision>
+        <surface>
+          <friction>
+            <ode>
+              <mu>1.0</mu>
+              <mu2>0.0</mu2>
+              <fdir1 gz:expressed_in="${tf_prefix}chassis">1 -1 0</fdir1>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+    </gazebo>
+    <gazebo reference="${tf_prefix}front_right_wheel">
+      <collision>
+        <surface>
+          <friction>
+            <ode>
+              <mu>1.0</mu>
+              <mu2>0.0</mu2>
+              <fdir1 gz:expressed_in="${tf_prefix}chassis">1 1 0</fdir1>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+    </gazebo>
+    <gazebo reference="${tf_prefix}rear_left_wheel">
+      <collision>
+        <surface>
+          <friction>
+            <ode>
+              <mu>1.0</mu>
+              <mu2>0.0</mu2>
+              <fdir1 gz:expressed_in="${tf_prefix}chassis">1 1 0</fdir1>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+    </gazebo>
+    <gazebo reference="${tf_prefix}rear_right_wheel">
+      <collision>
+        <surface>
+          <friction>
+            <ode>
+              <mu>1.0</mu>
+              <mu2>0.0</mu2>
+              <fdir1 gz:expressed_in="${tf_prefix}chassis">1 -1 0</fdir1>
+            </ode>
+          </friction>
+        </surface>
+      </collision>
+    </gazebo>
+  </xacro:macro>
+</robot>

@@ -1,0 +1,111 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+  <!--
+    Parallel two-finger gripper for the robot lab competition demo.
+
+    Geometry contract (all relative to the mounting frame, normally tool0):
+      - palm box spans z = [0.002, 0.042] (2 mm clearance from the flange)
+      - fingers extend to z = 0.117; the grasp frame gripper_tcp sits at z = 0.105
+      - finger travel 0.0 (open) .. 0.035 (closed) per finger
+      - jaw opening: open = 0.092 m, closed = 0.022 m
+        -> the 0.07 m sample block is grasped at ~0.011 per-finger travel
+
+    Joints gripper_left_finger_joint / gripper_right_finger_joint both close
+    toward the centre for positive commands (axes are mirrored).
+  -->
+  <xacro:macro name="parallel_gripper" params="parent tf_prefix:=''">
+    <link name="${tf_prefix}gripper_base">
+      <inertial>
+        <mass value="0.35"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <inertia ixx="0.0004" ixy="0" ixz="0" iyy="0.0002" iyz="0" izz="0.0005"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <box size="0.045 0.13 0.04"/>
+        </geometry>
+        <material name="gripper_dark_grey">
+          <color rgba="0.22 0.22 0.24 1.0"/>
+        </material>
+      </visual>
+      <collision>
+        <geometry>
+          <box size="0.045 0.13 0.04"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="${tf_prefix}gripper_base_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="${tf_prefix}gripper_base"/>
+      <origin xyz="0 0 0.022" rpy="0 0 0"/>
+    </joint>
+
+    <link name="${tf_prefix}gripper_left_finger">
+      <inertial>
+        <mass value="0.06"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <inertia ixx="0.00003" ixy="0" ixz="0" iyy="0.00003" iyz="0" izz="0.00001"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <box size="0.025 0.012 0.075"/>
+        </geometry>
+        <material name="gripper_light_grey">
+          <color rgba="0.78 0.80 0.82 1.0"/>
+        </material>
+      </visual>
+      <collision>
+        <geometry>
+          <box size="0.025 0.012 0.075"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="${tf_prefix}gripper_left_finger_joint" type="prismatic">
+      <parent link="${tf_prefix}gripper_base"/>
+      <child link="${tf_prefix}gripper_left_finger"/>
+      <origin xyz="0 0.052 0.0575" rpy="0 0 0"/>
+      <axis xyz="0 -1 0"/>
+      <limit lower="0.0" upper="0.035" effort="60.0" velocity="0.3"/>
+    </joint>
+
+    <link name="${tf_prefix}gripper_right_finger">
+      <inertial>
+        <mass value="0.06"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <inertia ixx="0.00003" ixy="0" ixz="0" iyy="0.00003" iyz="0" izz="0.00001"/>
+      </inertial>
+      <visual>
+        <geometry>
+          <box size="0.025 0.012 0.075"/>
+        </geometry>
+        <material name="gripper_light_grey">
+          <color rgba="0.78 0.80 0.82 1.0"/>
+        </material>
+      </visual>
+      <collision>
+        <geometry>
+          <box size="0.025 0.012 0.075"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="${tf_prefix}gripper_right_finger_joint" type="prismatic">
+      <parent link="${tf_prefix}gripper_base"/>
+      <child link="${tf_prefix}gripper_right_finger"/>
+      <origin xyz="0 -0.052 0.0575" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+      <limit lower="0.0" upper="0.035" effort="60.0" velocity="0.3"/>
+    </joint>
+
+    <!-- Grasp target frame between the fingertips. -->
+    <link name="${tf_prefix}gripper_tcp"/>
+
+    <joint name="${tf_prefix}gripper_tcp_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="${tf_prefix}gripper_tcp"/>
+      <origin xyz="0 0 0.105" rpy="0 0 0"/>
+    </joint>
+  </xacro:macro>
+</robot>
