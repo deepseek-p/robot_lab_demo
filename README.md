@@ -221,10 +221,11 @@ GALLIUM_DRIVER=d3d12 glxinfo -B
 
 加速渲染通常会显示 `D3D12`；稳定的软件路径可能显示 `llvmpipe`。如果 RViz 正常但 Gazebo GUI 仍为空白，可以保持 `gazebo_gui:=false launch_rviz:=true`，仿真仍会在 Gazebo 中运行，RViz 负责显示机器人、关节状态和 MoveIt 规划界面。
 
-如果 `ros2 launch` 找不到本地包，请重新构建并 source 当前工作区：
+如果 `source install/setup.bash` 提示某些包的 `local_setup.bash not found`，或者 `ros2 launch` 找不到 `robot_lab_bringup`，通常是工作区目录被移动/改名后，`colcon build --symlink-install` 生成的 `build/`、`install/` 仍然保留旧路径软链接。请清理生成目录后重新构建：
 
 ```bash
 cd /home/THW22/projects/robot_lab_demo
+rm -rf build install log
 source /opt/ros/humble/setup.bash
 colcon build --symlink-install
 source install/setup.bash
