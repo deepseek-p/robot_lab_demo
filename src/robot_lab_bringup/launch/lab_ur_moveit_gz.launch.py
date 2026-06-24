@@ -51,6 +51,7 @@ def launch_setup(context, *args, **kwargs):
     ur_type = LaunchConfiguration("ur_type").perform(context)
     launch_rviz = LaunchConfiguration("launch_rviz")
     show_lab_scene = LaunchConfiguration("show_lab_scene")
+    publish_scene_objects = LaunchConfiguration("publish_scene_objects")
     launch_perception = LaunchConfiguration("launch_perception")
     launch_tasks = LaunchConfiguration("launch_tasks")
     auto_start_task = LaunchConfiguration("auto_start_task")
@@ -279,6 +280,14 @@ def launch_setup(context, *args, **kwargs):
         parameters=[{"use_sim_time": True}],
         condition=IfCondition(launch_perception),
     )
+    planning_scene_objects = Node(
+        package="robot_lab_tasks",
+        executable="planning_scene_object_publisher.py",
+        name="planning_scene_object_publisher",
+        output="screen",
+        parameters=[{"use_sim_time": True}],
+        condition=IfCondition(publish_scene_objects),
+    )
 
     task_orchestrator = Node(
         package="robot_lab_tasks",
@@ -402,6 +411,7 @@ def launch_setup(context, *args, **kwargs):
         spawners,
         move_group,
         perception_node,
+        planning_scene_objects,
         lab_scene_markers,
         task_orchestrator,
         obstacle_monitor,
@@ -438,6 +448,11 @@ def generate_launch_description():
                 "show_lab_scene",
                 default_value="false",
                 description="Show RViz markers for the lab table and objects. Keep false for robot-only study.",
+            ),
+            DeclareLaunchArgument(
+                "publish_scene_objects",
+                default_value="false",
+                description="Publish LabScene/perception objects as MoveIt planning scene collision objects.",
             ),
             DeclareLaunchArgument(
                 "launch_perception",

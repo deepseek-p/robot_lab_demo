@@ -57,6 +57,7 @@ install(
   PROGRAMS
     scripts/task_orchestrator.py
     scripts/obstacle_monitor.py
+    scripts/planning_scene_object_publisher.py
     scripts/evaluate_pick_place.py
   DESTINATION lib/${PROJECT_NAME}
 )
