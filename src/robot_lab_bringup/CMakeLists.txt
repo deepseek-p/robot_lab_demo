@@ -15,4 +15,10 @@ install(
   DESTINATION share/${PROJECT_NAME}/scripts
 )
 
+if(BUILD_TESTING)
+  find_package(ament_cmake_pytest REQUIRED)
+  ament_add_pytest_test(project_structure ../../tests/test_project_structure.py)
+  ament_add_pytest_test(gazebo_classic_contracts ../../tests/test_gazebo_classic_contracts.py)
+endif()
+
 ament_package()

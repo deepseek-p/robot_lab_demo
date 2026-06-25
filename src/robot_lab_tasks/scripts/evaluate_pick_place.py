@@ -16,34 +16,20 @@ Usage (demo bringup + perception + pick_place_node running):
 import csv
 import json
 import random
-import subprocess
 import threading
 import time
 from pathlib import Path
 
 import rclpy
 from rclpy.node import Node
+from robot_lab_sim_tools.gazebo_state import GazeboClassicStateClient, make_pose
 from std_msgs.msg import String
 
-WORLD = "robot_lab_minimal"
 BLOCK = "sample_block"
 BLOCK_Z = 0.845
 X_RANGE = (0.48, 0.70)
 Y_RANGE = (0.05, 0.28)  # keep clear of the place targets on the -y side
 OBSTACLE_PARK = (0.58, 0.7, 1.05)
-
-
-def gz_set_pose(name: str, x: float, y: float, z: float) -> bool:
-    req = f'name: "{name}", position: {{x: {x:.4f}, y: {y:.4f}, z: {z:.4f}}}'
-    result = subprocess.run(
-        [
-            "gz", "service", "-s", f"/world/{WORLD}/set_pose",
-            "--reqtype", "gz.msgs.Pose", "--reptype", "gz.msgs.Boolean",
-            "--timeout", "3000", "--req", req,
-        ],
-        capture_output=True, text=True, timeout=10,
-    )
-    return "true" in result.stdout
 
 
 class ObstacleSweeper(threading.Thread):
@@ -60,23 +46,42 @@ class ObstacleSweeper(threading.Thread):
         super().__init__(daemon=True)
         self.stop_flag = threading.Event()
 
+    def _set_pose(
+        self,
+        client: GazeboClassicStateClient,
+        name: str,
+        x: float,
+        y: float,
+        z: float,
+    ) -> None:
+        client.set_pose(name, make_pose(x, y, z), timeout_sec=2.0)
+
     def run(self) -> None:
-        while not self.stop_flag.is_set():
-            # Parked phase.
-            gz_set_pose("moving_obstacle", *OBSTACLE_PARK)
-            if self.stop_flag.wait(self.PARK_S):
-                break
-            # One pass: 0.7 -> -0.3 -> 0.7 over SWEEP_S seconds.
-            t0 = time.monotonic()
+        node = rclpy.create_node("pick_place_obstacle_sweeper")
+        client = GazeboClassicStateClient(node)
+        try:
+            if not client.wait(timeout_sec=10.0):
+                node.get_logger().error("Gazebo Classic state services unavailable")
+                return
+
             while not self.stop_flag.is_set():
-                phase = (time.monotonic() - t0) / self.SWEEP_S
-                if phase >= 1.0:
+                # Parked phase.
+                self._set_pose(client, "moving_obstacle", *OBSTACLE_PARK)
+                if self.stop_flag.wait(self.PARK_S):
                     break
-                # Triangle: 0.7 -> -0.3 -> 0.7 over one sweep period.
-                y = 0.7 - (1.0 - abs(2.0 * phase - 1.0)) * 1.0
-                gz_set_pose("moving_obstacle", 0.58, y, 1.05)
-                time.sleep(0.2)
-        gz_set_pose("moving_obstacle", *OBSTACLE_PARK)
+                # One pass: 0.7 -> -0.3 -> 0.7 over SWEEP_S seconds.
+                t0 = time.monotonic()
+                while not self.stop_flag.is_set():
+                    phase = (time.monotonic() - t0) / self.SWEEP_S
+                    if phase >= 1.0:
+                        break
+                    # Triangle: 0.7 -> -0.3 -> 0.7 over one sweep period.
+                    y = 0.7 - (1.0 - abs(2.0 * phase - 1.0)) * 1.0
+                    self._set_pose(client, "moving_obstacle", 0.58, y, 1.05)
+                    time.sleep(0.2)
+            self._set_pose(client, "moving_obstacle", *OBSTACLE_PARK)
+        finally:
+            node.destroy_node()
 
 
 class PickPlaceEvaluator(Node):
@@ -87,6 +92,7 @@ class PickPlaceEvaluator(Node):
         self.declare_parameter("sweep_obstacle", False)
         self.declare_parameter("output_csv", "results/pick_place_eval.csv")
         self._status = None
+        self._gazebo = GazeboClassicStateClient(self)
         self.create_subscription(String, "/task/status", self._on_status, 10)
         self._cmd_pub = self.create_publisher(String, "/task/command", 10)
 
@@ -111,6 +117,13 @@ class PickPlaceEvaluator(Node):
         out_path = Path(self.get_parameter("output_csv").value)
         out_path.parent.mkdir(parents=True, exist_ok=True)
 
+        if not self._gazebo.wait(timeout_sec=10.0):
+            self.get_logger().error(
+                "Gazebo Classic state services are unavailable; "
+                "expected /gazebo/set_entity_state and /gazebo/get_entity_state"
+            )
+            return 1
+
         # Wait for the pick_place_node to be discovered.
         deadline = time.monotonic() + 15.0
         while time.monotonic() < deadline and self.count_subscribers("/task/command") == 0:
@@ -131,7 +144,7 @@ class PickPlaceEvaluator(Node):
         for i in range(trials):
             gx = random.uniform(*X_RANGE)
             gy = random.uniform(*Y_RANGE)
-            if not gz_set_pose(BLOCK, gx, gy, BLOCK_Z):
+            if not self._gazebo.set_pose(BLOCK, make_pose(gx, gy, BLOCK_Z)):
                 self.get_logger().warn(f"trial {i}: set_pose failed")
                 continue
             time.sleep(2.5)  # physics + perception settle

@@ -11,17 +11,20 @@ flowchart LR
     subgraph Gazebo["Gazebo Classic 11 (lab_minimal.sdf)"]
         CAM["bench_camera<br/>深度图 + 点云 5 Hz"]
         OBJ["sample_block / sample_vial_red"]
-        OBS["moving_obstacle"]
-        UR["UR5e + gripper<br/>gazebo_ros2_control"]
+    OBS["moving_obstacle"]
+    UR["UR5e + gripper<br/>gazebo_ros2_control"]
     end
     CAM -->|/bench_camera/points| PER["object_pose_estimator<br/>(color | onnx backend)"]
     PER -->|/perception/*/pose| PP["pick_place_node<br/>(碰撞感知 IK + 重规划)"]
+    OBS -->|/gazebo/model_states| OM
     OM -->|/planning_scene| MG["move_group (MoveIt 2)"]
     USER(("用户文本指令")) -->|/task/instruction| ORC["task_orchestrator<br/>(rule | llm planner)"]
     ORC -->|/task/command| PP
     PP <-->|plan / execute| MG
     MG -->|FollowJointTrajectory| UR
-    PP -->|/gripper_position_controller<br/>/gripper/attach,detach| UR
+    PP -->|/gripper_position_controller| UR
+    PP -->|/gripper/attach,detach| SGA["soft_gripper_attach"]
+    SGA -->|/gazebo/set_entity_state| OBJ
 ```
 
 ## 功能概览
@@ -35,6 +38,7 @@ flowchart LR
 - `preset_joint_demo`：执行关节空间冒烟测试动作，用于快速确认控制链路是否正常。
 - `robot_lab_perception`：基于颜色/点云检测目标物体，发布 6D 位姿、RViz Marker 和 JSON 检测摘要。
 - `robot_lab_tasks`：负责文本指令分解、抓取放置执行、动态障碍物同步和评估脚本。
+- `robot_lab_sim_tools`：提供 Gazebo Classic state service helper 和 `soft_gripper_attach`，把 `/gripper/attach/*`、`/gripper/detach/*` 转成 `/gazebo/set_entity_state` 跟随控制。
 
 ## 文本指令示例
 
@@ -143,6 +147,9 @@ ros2 run robot_lab_tasks preset_joint_demo
 ros2 control list_controllers
 ros2 action list | grep follow_joint_trajectory
 ros2 node list | grep move_group
+ros2 node list | grep soft_gripper_attach
+ros2 service list | grep /gazebo/set_entity_state
+ros2 topic list | grep /gazebo/model_states
 ros2 pkg list | grep robot_lab
 ```
 
@@ -170,6 +177,8 @@ src/robot_lab_bringup/scripts/static_lab_scene_markers.py
 src/robot_lab_perception/robot_lab_perception/object_pose_estimator.py
 src/robot_lab_perception/robot_lab_perception/detector_backends.py
 src/robot_lab_perception/robot_lab_perception/evaluate_perception.py
+src/robot_lab_sim_tools/robot_lab_sim_tools/gazebo_state.py
+src/robot_lab_sim_tools/robot_lab_sim_tools/soft_gripper_attach.py
 src/robot_lab_tasks/src/pick_place_node.cpp
 src/robot_lab_tasks/src/scripted_pick_demo.cpp
 src/robot_lab_tasks/src/preset_joint_demo.cpp
@@ -182,7 +191,7 @@ tests/test_preset_joint_demo_preflight.py
 
 ## 麦克纳姆移动底盘变体
 
-`lab_ur_mecanum_gz.launch.py` 保留了原始 Gazebo Sim / `ros_gz` 移动底盘方案。它不是当前 Humble + Gazebo Classic 冒烟测试的主路径。当前推荐优先使用固定底座 UR5e 夹爪演示。
+`lab_ur_mecanum_gz.launch.py` 是实验性 Gazebo Sim / `ros_gz` 移动底盘方案。它不是当前 Humble + Gazebo Classic 冒烟测试的主路径；如果当前环境缺少 `ros_gz_sim` 或 `ros_gz_bridge`，launch 会直接给出说明并退出。当前推荐优先使用固定底座 UR5e 夹爪演示。
 
 ```bash
 ros2 launch robot_lab_bringup lab_ur_mecanum_gz.launch.py
@@ -199,8 +208,8 @@ ros2 topic echo /odom
 ## 当前限制
 
 - 固定底座 UR5e 演示已经迁移到 Humble + Gazebo Classic。
-- 麦克纳姆移动底盘变体和 Gazebo Sim 的 attach/detach 抓取插件仍偏向 Jazzy/Gazebo Sim，需要单独迁移到 Classic。
-- Gazebo Classic 没有 Gazebo Sim 中同样的 `DetachableJoint` system，因此 Classic 冒烟路径暂未启用真实物体附着插件。
+- 麦克纳姆移动底盘变体仍是实验性 Gazebo Sim / `ros_gz` 路径，需要单独迁移或单独安装 Gazebo Sim stack。
+- Gazebo Classic 路径通过 `soft_gripper_attach` 桥接 `/gripper/attach/*` 和 `/gripper/detach/*`，使用 `/gazebo/set_entity_state` 让已抓取物体跟随 `gripper_tcp`。这不是物理约束插件，但足以支撑当前抓取放置演示和评估。
 - 如果 Gazebo/RViz 在 WSLg 下较慢，建议使用 `gazebo_gui:=false launch_rviz:=false` 做无头验证。
 
 ## 常见问题

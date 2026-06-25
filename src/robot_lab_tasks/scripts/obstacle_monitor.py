@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
-"""Dynamic obstacle monitor: Gazebo pose -> MoveIt planning scene.
+"""Dynamic obstacle monitor: Gazebo Classic model state -> MoveIt planning scene.
 
-Subscribes to the obstacle's dedicated pose topic (published by the
-gz-sim PosePublisher plugin and bridged to PoseStamped), and applies its
-pose to the MoveIt planning scene as a collision cylinder whenever it
-moves. MoveIt then plans around the obstacle's current position, and
-in-flight trajectories are aborted by move_group's scene validation when
-the obstacle invades the path — the pick executor retries with a fresh
-plan, which together forms the dynamic-avoidance behavior of this demo.
+Subscribes to /gazebo/model_states from Gazebo Classic's state plugin and
+applies the moving obstacle pose to the MoveIt planning scene as a
+collision cylinder whenever it moves. MoveIt then plans around the
+obstacle's current position, and in-flight trajectories are aborted by
+move_group's scene validation when the obstacle invades the path; the pick
+executor retries with a fresh plan.
 
 The pose-update -> scene-publish latency is measured per update and
 published on ``/task/obstacle_latency`` (milliseconds); optionally appended
@@ -20,7 +19,8 @@ import time
 from pathlib import Path
 
 import rclpy
-from geometry_msgs.msg import Pose, PoseStamped
+from gazebo_msgs.msg import ModelStates
+from geometry_msgs.msg import Pose
 from moveit_msgs.msg import CollisionObject, PlanningScene
 from rclpy.node import Node
 from shape_msgs.msg import SolidPrimitive
@@ -34,11 +34,13 @@ CYLINDER_RADIUS = 0.06
 class ObstacleMonitor(Node):
     def __init__(self) -> None:
         super().__init__("obstacle_monitor")
-        self.declare_parameter("pose_topic", "/model/moving_obstacle/pose")
+        self.declare_parameter("model_states_topic", "/gazebo/model_states")
+        self.declare_parameter("obstacle_name", OBSTACLE)
         self.declare_parameter("min_move", 0.005)
         self.declare_parameter("latency_csv", "")
 
         self._min_move = float(self.get_parameter("min_move").value)
+        self._obstacle_name = str(self.get_parameter("obstacle_name").value)
         self._last_pose: Pose | None = None
         self._csv_path = str(self.get_parameter("latency_csv").value)
         self._csv_rows: list = []
@@ -47,18 +49,27 @@ class ObstacleMonitor(Node):
         self._scene_pub = self.create_publisher(PlanningScene, "/planning_scene", 10)
         self._latency_pub = self.create_publisher(Float64, "/task/obstacle_latency", 10)
         self.create_subscription(
-            PoseStamped,
-            str(self.get_parameter("pose_topic").value),
-            self._on_pose,
+            ModelStates,
+            str(self.get_parameter("model_states_topic").value),
+            self._on_model_states,
             10,
         )
-        self.get_logger().info("obstacle_monitor up; tracking '%s'" % OBSTACLE)
+        self.get_logger().info(
+            "obstacle_monitor up; tracking '%s' from /gazebo/model_states"
+            % self._obstacle_name
+        )
 
-    def _on_pose(self, msg: PoseStamped) -> None:
+    def _on_model_states(self, msg: ModelStates) -> None:
         received = time.monotonic()
-        if not self._moved(msg.pose):
+        try:
+            index = msg.name.index(self._obstacle_name)
+        except ValueError:
             return
-        self._apply(msg.pose)
+
+        pose = msg.pose[index]
+        if not self._moved(pose):
+            return
+        self._apply(pose)
         latency_ms = (time.monotonic() - received) * 1000.0
         self._latency_pub.publish(Float64(data=latency_ms))
         self._record(latency_ms)

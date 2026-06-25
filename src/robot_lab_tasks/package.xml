@@ -16,11 +16,10 @@
   <depend>shape_msgs</depend>
   <depend>std_msgs</depend>
 
+  <exec_depend>gazebo_msgs</exec_depend>
   <exec_depend>rclpy</exec_depend>
+  <exec_depend>robot_lab_sim_tools</exec_depend>
   <exec_depend>tf2_msgs</exec_depend>
-
-  <test_depend>ament_lint_auto</test_depend>
-  <test_depend>ament_lint_common</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

@@ -14,35 +14,19 @@ Usage (with the demo bringup and object_pose_estimator running):
 import csv
 import math
 import random
-import subprocess
 import time
 from pathlib import Path
 
 import rclpy
 from geometry_msgs.msg import PoseStamped
 from rclpy.node import Node
+from robot_lab_sim_tools.gazebo_state import GazeboClassicStateClient, make_pose
 
-WORLD = "robot_lab_minimal"
 BLOCK = "sample_block"
 BLOCK_Z = 0.845
 # Keep the block inside the camera view and the arm workspace.
 X_RANGE = (0.45, 0.75)
 Y_RANGE = (-0.25, 0.25)
-
-
-def set_block_pose(x: float, y: float) -> bool:
-    req = f'name: "{BLOCK}", position: {{x: {x:.4f}, y: {y:.4f}, z: {BLOCK_Z}}}'
-    result = subprocess.run(
-        [
-            "gz", "service", "-s", f"/world/{WORLD}/set_pose",
-            "--reqtype", "gz.msgs.Pose", "--reptype", "gz.msgs.Boolean",
-            "--timeout", "3000", "--req", req,
-        ],
-        capture_output=True,
-        text=True,
-        timeout=10,
-    )
-    return "true" in result.stdout
 
 
 class PerceptionEvaluator(Node):
@@ -52,6 +36,7 @@ class PerceptionEvaluator(Node):
         self.declare_parameter("settle_time", 2.0)
         self.declare_parameter("output_csv", "results/perception_eval.csv")
         self._latest: PoseStamped | None = None
+        self._gazebo = GazeboClassicStateClient(self)
         self.create_subscription(
             PoseStamped, f"/perception/{BLOCK}/pose", self._on_pose, 10
         )
@@ -64,6 +49,13 @@ class PerceptionEvaluator(Node):
         settle = float(self.get_parameter("settle_time").value)
         out_path = Path(self.get_parameter("output_csv").value)
         out_path.parent.mkdir(parents=True, exist_ok=True)
+
+        if not self._gazebo.wait(timeout_sec=10.0):
+            self.get_logger().error(
+                "Gazebo Classic state services are unavailable; "
+                "expected /gazebo/set_entity_state and /gazebo/get_entity_state"
+            )
+            return 1
 
         # Wait for the estimator's publisher to be discovered before trial 0,
         # otherwise the first trial races DDS discovery and reads nothing.
@@ -81,7 +73,7 @@ class PerceptionEvaluator(Node):
         for i in range(trials):
             gx = random.uniform(*X_RANGE)
             gy = random.uniform(*Y_RANGE)
-            if not set_block_pose(gx, gy):
+            if not self._gazebo.set_pose(BLOCK, make_pose(gx, gy, BLOCK_Z)):
                 self.get_logger().warn(f"trial {i}: set_pose failed, skipping")
                 continue
 

@@ -54,6 +54,7 @@ def launch_setup(context, *args, **kwargs):
     publish_scene_objects = LaunchConfiguration("publish_scene_objects")
     launch_perception = LaunchConfiguration("launch_perception")
     launch_tasks = LaunchConfiguration("launch_tasks")
+    launch_soft_gripper_attach = LaunchConfiguration("launch_soft_gripper_attach")
     auto_start_task = LaunchConfiguration("auto_start_task")
     rviz_profile = LaunchConfiguration("rviz_profile").perform(context).lower()
     warehouse_sqlite_path = LaunchConfiguration("warehouse_sqlite_path").perform(
@@ -308,6 +309,21 @@ def launch_setup(context, *args, **kwargs):
         ],
         condition=IfCondition(launch_tasks),
     )
+    soft_gripper_attach = Node(
+        package="robot_lab_sim_tools",
+        executable="soft_gripper_attach",
+        name="soft_gripper_attach",
+        output="screen",
+        parameters=[
+            {"use_sim_time": True},
+            {"objects": ["sample_block", "sample_vial_red"]},
+            {"world_frame": "world"},
+            {"tcp_frame": "gripper_tcp"},
+            {"model_states_topic": "/gazebo/model_states"},
+            {"update_rate": 30.0},
+        ],
+        condition=IfCondition(launch_soft_gripper_attach),
+    )
     pick_place = TimerAction(
         period=18.0,
         actions=[
@@ -413,6 +429,7 @@ def launch_setup(context, *args, **kwargs):
         perception_node,
         planning_scene_objects,
         lab_scene_markers,
+        soft_gripper_attach,
         task_orchestrator,
         obstacle_monitor,
         pick_place,
@@ -463,6 +480,11 @@ def generate_launch_description():
                 "launch_tasks",
                 default_value="false",
                 description="Start the task orchestrator, obstacle monitor, and pick/place executor.",
+            ),
+            DeclareLaunchArgument(
+                "launch_soft_gripper_attach",
+                default_value="true",
+                description="Start the Gazebo Classic soft attach bridge for gripper attach/detach topics.",
             ),
             DeclareLaunchArgument(
                 "rviz_profile",

@@ -1,20 +1,17 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>robot_lab_perception</name>
+  <name>robot_lab_sim_tools</name>
   <version>0.1.0</version>
-  <description>RGB-D object detection and 6D pose estimation for the robot lab competition demo.</description>
+  <description>Gazebo Classic simulation helper nodes for the robot lab demo.</description>
   <maintainer email="thw2188@example.com">thw2188</maintainer>
   <license>Apache-2.0</license>
 
-  <depend>geometry_msgs</depend>
-  <depend>rclpy</depend>
-  <depend>robot_lab_sim_tools</depend>
-  <depend>sensor_msgs</depend>
-  <depend>sensor_msgs_py</depend>
-  <depend>std_msgs</depend>
-  <depend>tf2_ros</depend>
-  <depend>visualization_msgs</depend>
+  <exec_depend>gazebo_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
 
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>

@@ -15,7 +15,7 @@ import os
 from pathlib import Path
 
 import xacro
-from ament_index_python.packages import get_package_share_directory
+from ament_index_python.packages import PackageNotFoundError, get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
@@ -30,6 +30,19 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from moveit_configs_utils import MoveItConfigsBuilder
+
+
+def require_gazebo_sim_package(package_name: str) -> str:
+    try:
+        return get_package_share_directory(package_name)
+    except PackageNotFoundError as ex:
+        raise RuntimeError(
+            "lab_ur_mecanum_gz.launch.py is experimental and requires Gazebo Sim "
+            f"package '{package_name}', which is not installed in this Humble "
+            "Gazebo Classic environment. Use lab_ur_moveit_gz.launch.py for the "
+            "supported fixed-base demo, or install/migrate the Gazebo Sim stack "
+            "in a separate task."
+        ) from ex
 
 
 def launch_setup(context, *args, **kwargs):
@@ -84,7 +97,7 @@ def launch_setup(context, *args, **kwargs):
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(
-                get_package_share_directory("ros_gz_sim"),
+                require_gazebo_sim_package("ros_gz_sim"),
                 "launch",
                 "gz_sim.launch.py",
             )
@@ -108,6 +121,7 @@ def launch_setup(context, *args, **kwargs):
         ],
     )
 
+    require_gazebo_sim_package("ros_gz_bridge")
     gz_bridge = Node(
         package="ros_gz_bridge",
         executable="parameter_bridge",

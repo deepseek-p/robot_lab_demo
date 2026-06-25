@@ -89,14 +89,15 @@ def test_bringup_sets_wslg_d3d12_rendering_workaround():
     assert '"QT_QPA_PLATFORM"' in content
     assert '"xcb"' in content
     assert '"QT_OPENGL"' in content
-    assert '"desktop"' in content
+    assert "desktop" in content
+    assert "software" in content
     assert '"GALLIUM_DRIVER"' in content
-    assert '"d3d12"' in content
+    assert "d3d12" in content
     assert '"MESA_D3D12_DEFAULT_ADAPTER_NAME"' in content
-    assert '"NVIDIA"' in content
+    assert "NVIDIA" in content
     assert '"QT_X11_NO_MITSHM"' in content
     assert '"1"' in content
-    assert '"LIBGL_ALWAYS_SOFTWARE"' not in content
+    assert '"LIBGL_ALWAYS_SOFTWARE"' in content
     assert '"XDG_RUNTIME_DIR"' in content
 
 
@@ -114,7 +115,8 @@ def test_bringup_recenters_rviz_window_for_wslg_multi_monitor():
     assert "recenter_rviz_window.py" in launch_content
     assert "rviz_recenter" in launch_content
     assert "condition=IfCondition(launch_rviz)" in launch_content
-    assert "PROGRAMS scripts/recenter_rviz_window.py" in cmake_content
+    assert "scripts/recenter_rviz_window.py" in cmake_content
+    assert "DESTINATION share/${PROJECT_NAME}/scripts" in cmake_content
     assert "xrandr" in script_content
     assert "XQueryTree" in script_content
     assert "XMoveWindow" in script_content
@@ -196,7 +198,7 @@ def test_world_has_overhead_depth_camera_with_gazebo_ros_plugin():
     assert "libgazebo_ros_camera.so" in world
     assert 'type="depth"' in world
     assert "bench_camera" in world
-    assert "frame_name>bench_camera_link" in world
+    assert "frame_name>bench_camera_optical_frame" in world
 
 
 def test_bringup_bridges_camera_topics_and_starts_perception():
