@@ -14,7 +14,8 @@ __pycache__/
 .worktrees/
 
 # Local planning/context artifacts
-docs/
+docs/*
+!docs/github-collaboration-plan.md
 PROJECT_CONTEXT.md
 *.png
 
