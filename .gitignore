@@ -11,6 +11,7 @@ __pycache__/
 # Local editor and agent state
 .vscode/
 .claude/
+.worktrees/
 
 # Local planning/context artifacts
 docs/
