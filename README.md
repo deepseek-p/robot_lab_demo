@@ -14,11 +14,11 @@ flowchart LR
     OBS["moving_obstacle"]
     UR["UR5e + gripper<br/>gazebo_ros2_control"]
     end
-    CAM -->|/bench_camera/points| PER["object_pose_estimator<br/>(color | onnx backend)"]
+    CAM -->|/bench_camera/points| PER["object_pose_estimator<br/>(color backend; onnx not implemented)"]
     PER -->|/perception/*/pose| PP["pick_place_node<br/>(碰撞感知 IK + 重规划)"]
     OBS -->|/gazebo/model_states| OM
     OM -->|/planning_scene| MG["move_group (MoveIt 2)"]
-    USER(("用户文本指令")) -->|/task/instruction| ORC["task_orchestrator<br/>(rule | llm planner)"]
+    USER(("用户文本指令")) -->|/task/instruction| ORC["task_orchestrator<br/>(rule planner; llm not implemented)"]
     ORC -->|/task/command| PP
     PP <-->|plan / execute| MG
     MG -->|FollowJointTrajectory| UR
@@ -210,6 +210,7 @@ ros2 topic echo /odom
 - 固定底座 UR5e 演示已经迁移到 Humble + Gazebo Classic。
 - 麦克纳姆移动底盘变体仍是实验性 Gazebo Sim / `ros_gz` 路径，需要单独迁移或单独安装 Gazebo Sim stack。
 - Gazebo Classic 路径通过 `soft_gripper_attach` 桥接 `/gripper/attach/*` 和 `/gripper/detach/*`，使用 `/gazebo/set_entity_state` 让已抓取物体跟随 `gripper_tcp`。这不是物理约束插件，但足以支撑当前抓取放置演示和评估。
+- `onnx` 感知后端和 `llm` 任务规划器是预留集成点，当前 not implemented；演示时请使用默认的 `color` 感知后端和 `rule` 任务规划器。
 - 如果 Gazebo/RViz 在 WSLg 下较慢，建议使用 `gazebo_gui:=false launch_rviz:=false` 做无头验证。
 
 ## 常见问题

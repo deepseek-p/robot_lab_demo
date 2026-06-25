@@ -263,6 +263,12 @@ def launch_setup(context, *args, **kwargs):
                 executable="pick_place_node",
                 name="pick_place_node",
                 output="screen",
+                parameters=[
+                    robot_description,
+                    moveit_config.to_dict(),
+                    warehouse_ros_config,
+                    {"use_sim_time": True},
+                ],
                 condition=IfCondition(launch_tasks),
             )
         ],

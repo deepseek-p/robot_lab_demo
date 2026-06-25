@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<robot xmlns:xacro="http://wiki.ros.org/xacro" name="$(arg name)">
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="ur">
   <!--
     Mobile lab cobot: UR arm + parallel gripper on a four-wheel mecanum
     base. Mobile variant of lab_ur_gripper.urdf.xacro — the arm mounting

@@ -1,3 +1,5 @@
+import os
+import subprocess
 from pathlib import Path
 
 
@@ -79,6 +81,39 @@ def test_bringup_keeps_moveit_warehouse_path_available():
     assert 'LaunchConfiguration("warehouse_sqlite_path")' in content
     assert '"warehouse_sqlite_path"' in content
     assert '"warehouse_host": warehouse_sqlite_path' in content
+
+
+def test_packages_declare_resolvable_python_runtime_dependencies():
+    bringup_package = (ROOT / "src/robot_lab_bringup/package.xml").read_text(
+        encoding="utf-8"
+    )
+    perception_package = (ROOT / "src/robot_lab_perception/package.xml").read_text(
+        encoding="utf-8"
+    )
+
+    assert "<exec_depend>ament_index_python</exec_depend>" in bringup_package
+    assert "<depend>sensor_msgs_py</depend>" in perception_package
+
+
+def test_perception_python_package_declares_numpy_install_requirement():
+    setup_py = (ROOT / "src/robot_lab_perception/setup.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert '"numpy"' in setup_py
+
+
+def test_required_external_python_modules_are_importable():
+    result = subprocess.run(
+        ["python3", "-c", "import yaml, numpy"],
+        cwd=ROOT,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout
 
 
 def test_bringup_sets_wslg_d3d12_rendering_workaround():
@@ -288,6 +323,19 @@ def test_task_layer_provides_orchestration_chain():
     assert "sweep_obstacle" in evaluator
 
 
+def test_pick_place_node_handles_json_string_escaping_explicitly():
+    pick_place = (
+        ROOT / "src/robot_lab_tasks/src/pick_place_node.cpp"
+    ).read_text(encoding="utf-8")
+
+    assert "json_escape" in pick_place
+    assert "json_escape(state)" in pick_place
+    assert "json_escape(detail)" in pick_place
+    assert "case '\\\\'" in pick_place
+    assert "case '\"'" in pick_place
+    assert "escaped" in pick_place
+
+
 def test_world_has_moving_obstacle_with_pose_publisher():
     world = (
         ROOT / "src/robot_lab_description/worlds/lab_minimal.sdf"
@@ -328,6 +376,33 @@ def test_mecanum_variant_provides_omnidirectional_base():
     assert "station_b" in world
 
 
+def test_mecanum_xacro_has_a_safe_default_robot_root_name():
+    robot = (
+        ROOT / "src/robot_lab_description/urdf/lab_ur_mecanum.urdf.xacro"
+    ).read_text(encoding="utf-8")
+
+    assert 'name="$(arg name)"' not in robot.splitlines()[1]
+    assert 'name="ur"' in robot.splitlines()[1]
+    assert "ur_joint_control.xacro" not in robot
+
+
+def test_mecanum_pick_place_receives_moveit_parameters():
+    launch = (
+        ROOT / "src/robot_lab_bringup/launch/lab_ur_mecanum_gz.launch.py"
+    ).read_text(encoding="utf-8")
+
+    pick_place_start = launch.index('executable="pick_place_node"')
+    pick_place_block = launch[pick_place_start : launch.index(
+        "condition=IfCondition(launch_tasks)", pick_place_start
+    )]
+
+    assert "parameters=[" in pick_place_block
+    assert "robot_description" in pick_place_block
+    assert "moveit_config.to_dict()" in pick_place_block
+    assert "warehouse_ros_config" in pick_place_block
+    assert '{"use_sim_time": True}' in pick_place_block
+
+
 def test_scripted_pick_demo_closes_the_grasp_loop():
     task_file = ROOT / "src/robot_lab_tasks/src/scripted_pick_demo.cpp"
     content = task_file.read_text(encoding="utf-8")
@@ -357,3 +432,32 @@ def test_readme_documents_demo_commands():
     assert "ros2 run robot_lab_tasks scripted_pick_demo" in readme
     assert "ros2 run robot_lab_tasks preset_joint_demo" in readme
     assert "ros2 control list_controllers" in readme
+
+
+def test_planning_scene_object_publisher_is_a_ros_executable_script():
+    script = ROOT / "src/robot_lab_tasks/scripts/planning_scene_object_publisher.py"
+    cmake = (ROOT / "src/robot_lab_tasks/CMakeLists.txt").read_text(
+        encoding="utf-8"
+    )
+    content = script.read_text(encoding="utf-8")
+
+    assert content.startswith("#!/usr/bin/env python3")
+    assert os.access(script, os.X_OK)
+    assert "scripts/planning_scene_object_publisher.py" in cmake
+    assert "ExternalShutdownException" in content
+    assert "except (KeyboardInterrupt, ExternalShutdownException):" in content
+
+
+def test_unimplemented_optional_backends_are_documented_as_not_demo_ready():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8").lower()
+    detector = (
+        ROOT / "src/robot_lab_perception/robot_lab_perception/detector_backends.py"
+    ).read_text(encoding="utf-8")
+    orchestrator = (
+        ROOT / "src/robot_lab_tasks/scripts/task_orchestrator.py"
+    ).read_text(encoding="utf-8")
+
+    assert "onnx" in detector and "NotImplementedError" in detector
+    assert "llm" in orchestrator and "NotImplementedError" in orchestrator
+    assert "onnx" in readme and "not implemented" in readme
+    assert "llm" in readme and "not implemented" in readme

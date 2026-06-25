@@ -15,6 +15,7 @@ from typing import Any
 import rclpy
 from geometry_msgs.msg import Pose
 from moveit_msgs.msg import CollisionObject, PlanningScene
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from shape_msgs.msg import SolidPrimitive
 from std_msgs.msg import String
@@ -379,7 +380,7 @@ def main() -> None:
     node = PlanningSceneObjectPublisher()
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
         node.destroy_node()

@@ -76,12 +76,80 @@ std::string extract_json_string(const std::string & json, const std::string & ke
     return "";
   }
   const auto colon = json.find(':', key_pos);
-  const auto first_quote = json.find('"', colon + 1);
-  const auto second_quote = json.find('"', first_quote + 1);
-  if (first_quote == std::string::npos || second_quote == std::string::npos) {
+  if (colon == std::string::npos) {
     return "";
   }
-  return json.substr(first_quote + 1, second_quote - first_quote - 1);
+  const auto first_quote = json.find('"', colon + 1);
+  if (first_quote == std::string::npos) {
+    return "";
+  }
+
+  std::string value;
+  bool escaped = false;
+  for (size_t index = first_quote + 1; index < json.size(); ++index) {
+    const char ch = json[index];
+    if (escaped) {
+      switch (ch) {
+        case '"':
+        case '\\':
+        case '/':
+          value.push_back(ch);
+          break;
+        case 'n':
+          value.push_back('\n');
+          break;
+        case 'r':
+          value.push_back('\r');
+          break;
+        case 't':
+          value.push_back('\t');
+          break;
+        default:
+          value.push_back(ch);
+          break;
+      }
+      escaped = false;
+      continue;
+    }
+    if (ch == '\\') {
+      escaped = true;
+      continue;
+    }
+    if (ch == '"') {
+      return value;
+    }
+    value.push_back(ch);
+  }
+  return "";
+}
+
+std::string json_escape(const std::string & value)
+{
+  std::string escaped;
+  escaped.reserve(value.size());
+  for (const char ch : value) {
+    switch (ch) {
+      case '"':
+        escaped += "\\\"";
+        break;
+      case '\\':
+        escaped += "\\\\";
+        break;
+      case '\n':
+        escaped += "\\n";
+        break;
+      case '\r':
+        escaped += "\\r";
+        break;
+      case '\t':
+        escaped += "\\t";
+        break;
+      default:
+        escaped.push_back(static_cast<unsigned char>(ch) < 0x20 ? ' ' : ch);
+        break;
+    }
+  }
+  return escaped;
 }
 
 class PickPlaceNode : public rclcpp::Node
@@ -124,7 +192,8 @@ public:
   void publish_status(const std::string & state, const std::string & detail)
   {
     std_msgs::msg::String msg;
-    msg.data = "{\"state\": \"" + state + "\", \"detail\": \"" + detail + "\"}";
+    msg.data =
+      "{\"state\": \"" + json_escape(state) + "\", \"detail\": \"" + json_escape(detail) + "\"}";
     status_pub_->publish(msg);
     RCLCPP_INFO(get_logger(), "status: %s (%s)", state.c_str(), detail.c_str());
   }
