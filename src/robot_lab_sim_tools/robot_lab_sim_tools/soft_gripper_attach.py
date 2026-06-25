@@ -234,6 +234,10 @@ def main() -> None:
         rclpy.spin(node)
     except KeyboardInterrupt:
         pass
+    except RuntimeError as ex:
+        if rclpy.ok():
+            node.get_logger().error(f"soft_gripper_attach stopped unexpectedly: {ex}")
+            raise
     finally:
         node.destroy_node()
         rclpy.try_shutdown()

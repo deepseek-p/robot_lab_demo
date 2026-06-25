@@ -69,6 +69,14 @@ def test_classic_attach_bridge_consumes_existing_gripper_topics():
     assert "self._owned_subscriptions" in bridge
 
 
+def test_soft_gripper_attach_suppresses_runtime_error_only_during_shutdown():
+    bridge = read("src/robot_lab_sim_tools/robot_lab_sim_tools/soft_gripper_attach.py")
+
+    assert "except RuntimeError as ex" in bridge
+    assert "if rclpy.ok():" in bridge
+    assert "raise" in bridge
+
+
 def test_mecanum_variant_is_marked_experimental_when_gz_sim_deps_are_absent():
     launch = read("src/robot_lab_bringup/launch/lab_ur_mecanum_gz.launch.py")
     readme = read("README.md")

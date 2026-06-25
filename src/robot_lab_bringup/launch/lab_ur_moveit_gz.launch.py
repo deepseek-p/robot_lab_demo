@@ -10,6 +10,7 @@ from launch.actions import (
     DeclareLaunchArgument,
     ExecuteProcess,
     IncludeLaunchDescription,
+    LogInfo,
     OpaqueFunction,
     SetEnvironmentVariable,
     TimerAction,
@@ -28,6 +29,10 @@ ARM_JOINTS = [
     "wrist_2_joint",
     "wrist_3_joint",
 ]
+
+
+def launch_bool(value):
+    return str(value).strip().lower() in ("1", "true", "yes", "on")
 
 
 def load_yaml_file(path):
@@ -49,6 +54,7 @@ def strip_xml_comments(xml_text):
 def launch_setup(context, *args, **kwargs):
     """Start the lab demo on ROS 2 Humble + Gazebo Classic."""
     ur_type = LaunchConfiguration("ur_type").perform(context)
+    gazebo_gui = LaunchConfiguration("gazebo_gui")
     launch_rviz = LaunchConfiguration("launch_rviz")
     show_lab_scene = LaunchConfiguration("show_lab_scene")
     publish_scene_objects = LaunchConfiguration("publish_scene_objects")
@@ -81,6 +87,16 @@ def launch_setup(context, *args, **kwargs):
     lab_scene_markers_script = os.path.join(
         bringup_pkg, "scripts", "static_lab_scene_markers.py"
     )
+    running_wslg_gui = bool(os.environ.get("WSL_DISTRO_NAME")) and bool(
+        os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")
+    )
+    disable_dual_gui = (
+        launch_bool(gazebo_gui.perform(context))
+        and launch_bool(launch_rviz.perform(context))
+        and running_wslg_gui
+        and not launch_bool(LaunchConfiguration("allow_dual_gui").perform(context))
+    )
+    effective_gazebo_gui = "false" if disable_dual_gui else gazebo_gui
 
     robot_description_content = strip_xml_comments(
         xacro.process_file(
@@ -167,7 +183,7 @@ def launch_setup(context, *args, **kwargs):
         ),
         launch_arguments={
             "world": world_file,
-            "gui": LaunchConfiguration("gazebo_gui"),
+            "gui": effective_gazebo_gui,
             "verbose": "true",
         }.items(),
     )
@@ -418,7 +434,7 @@ def launch_setup(context, *args, **kwargs):
         ],
     )
 
-    return [
+    actions = [
         gazebo,
         robot_state_publisher,
         spawn_robot,
@@ -437,6 +453,17 @@ def launch_setup(context, *args, **kwargs):
         rviz_recenter,
         scripted_pick,
     ]
+    if disable_dual_gui:
+        actions.insert(
+            0,
+            LogInfo(
+                msg=(
+                    "Gazebo GUI disabled because RViz is also enabled under WSLg; "
+                    "set allow_dual_gui:=true to force both, but RViz may freeze."
+                )
+            ),
+        )
+    return actions
 
 
 def generate_launch_description():
@@ -522,6 +549,16 @@ def generate_launch_description():
                 description="WSLg rendering mode: software is stable CPU rendering; gpu uses Mesa D3D12 acceleration.",
             ),
             DeclareLaunchArgument(
+                "sync_to_vblank",
+                default_value="true",
+                description="Limit GUI render loops with vblank sync. Keep true when RViz and Gazebo GUI run together.",
+            ),
+            DeclareLaunchArgument(
+                "allow_dual_gui",
+                default_value="false",
+                description="Allow Gazebo GUI and RViz to run together under WSLg despite high CPU/freeze risk.",
+            ),
+            DeclareLaunchArgument(
                 "qt_gl_integration",
                 default_value="xcb_egl",
                 description="Qt XCB OpenGL integration: try xcb_egl first under WSLg; use xcb_glx if EGL flickers.",
@@ -557,8 +594,26 @@ def generate_launch_description():
             SetEnvironmentVariable("GDK_DPI_SCALE", LaunchConfiguration("gui_scale")),
             SetEnvironmentVariable("XCURSOR_THEME", "Adwaita"),
             SetEnvironmentVariable("XCURSOR_SIZE", LaunchConfiguration("cursor_size")),
-            SetEnvironmentVariable("vblank_mode", "0"),
-            SetEnvironmentVariable("__GL_SYNC_TO_VBLANK", "0"),
+            SetEnvironmentVariable(
+                "vblank_mode",
+                PythonExpression(
+                    [
+                        "'1' if '",
+                        LaunchConfiguration("sync_to_vblank"),
+                        "' == 'true' else '0'",
+                    ]
+                ),
+            ),
+            SetEnvironmentVariable(
+                "__GL_SYNC_TO_VBLANK",
+                PythonExpression(
+                    [
+                        "'1' if '",
+                        LaunchConfiguration("sync_to_vblank"),
+                        "' == 'true' else '0'",
+                    ]
+                ),
+            ),
             SetEnvironmentVariable(
                 "LIBGL_ALWAYS_SOFTWARE",
                 PythonExpression(

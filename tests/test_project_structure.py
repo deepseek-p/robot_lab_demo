@@ -101,6 +101,29 @@ def test_bringup_sets_wslg_d3d12_rendering_workaround():
     assert '"XDG_RUNTIME_DIR"' in content
 
 
+def test_bringup_limits_gui_render_loops_by_default():
+    launch_file = ROOT / "src/robot_lab_bringup/launch/lab_ur_moveit_gz.launch.py"
+    content = launch_file.read_text(encoding="utf-8")
+
+    assert '"sync_to_vblank"' in content
+    assert 'default_value="true"' in content
+    assert '"vblank_mode"' in content
+    assert '"__GL_SYNC_TO_VBLANK"' in content
+    assert 'SetEnvironmentVariable("vblank_mode", "0")' not in content
+    assert 'SetEnvironmentVariable("__GL_SYNC_TO_VBLANK", "0")' not in content
+
+
+def test_bringup_prevents_wslg_rviz_gazebo_gui_contention_by_default():
+    launch_file = ROOT / "src/robot_lab_bringup/launch/lab_ur_moveit_gz.launch.py"
+    content = launch_file.read_text(encoding="utf-8")
+
+    assert '"allow_dual_gui"' in content
+    assert "effective_gazebo_gui" in content
+    assert "WSL_DISTRO_NAME" in content
+    assert '"gui": effective_gazebo_gui' in content
+    assert "Gazebo GUI disabled because RViz is also enabled under WSLg" in content
+
+
 def test_bringup_recenters_rviz_window_for_wslg_multi_monitor():
     launch_file = ROOT / "src/robot_lab_bringup/launch/lab_ur_moveit_gz.launch.py"
     launch_content = launch_file.read_text(encoding="utf-8")
